@@ -52,7 +52,7 @@ class CwdSegment(Segment):
 		else:
 			return super(CwdSegment, self).omitted_args(name, method)
 
-	def get_shortened_path(self, pl, segment_info, shorten_home=True, **kwargs):
+	def get_shortened_path(self, pl, segment_info, shorten_home=True, path_aliases=None, **kwargs):
 		try:
 			path = out_u(segment_info['getcwd']())
 		except OSError as e:
@@ -63,7 +63,12 @@ class CwdSegment(Segment):
 				return '[not found]'
 			else:
 				raise
-		if shorten_home:
+		if isinstance(path_aliases, dict):
+			for alias_target, alias in path_aliases.items():
+				alias_target = os.path.expanduser(out_u(alias_target))
+				if path.startswith(alias_target):
+					path = out_u(alias) + path[len(alias_target):]
+		elif shorten_home:
 			home = segment_info['home']
 			if home:
 				home = out_u(home)
@@ -122,6 +127,10 @@ Returns a segment list to create a breadcrumb-like effect.
 	Use path separator in place of soft divider.
 :param bool shorten_home:
 	Shorten home directory to ``~``.
+:param dict path_aliases
+    Define aliases for well-known paths. Directory starting with one 
+    of theses aliases will be shortenened to the provided alias.
+    Example: {"~/Music": "🎵"}
 :param str ellipsis:
 	Specifies what to use in place of omitted directories. Use None to not 
 	show this subsegment at all.
